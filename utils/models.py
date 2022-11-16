@@ -1,4 +1,6 @@
 import os
+import numpy as np
+
 import torch
 from torch.nn import CrossEntropyLoss
 import transformers
