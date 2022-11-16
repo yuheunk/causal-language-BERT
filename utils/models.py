@@ -85,7 +85,7 @@ def train_model(train_dataset, test_dataset, model_file_to_save, epochs, lr, bat
     )
     print('### START TRAINING ###')
     print(f'pretrain model = {pretrain_model}')
-    trainer = trainer.train()
+    trainer.train()
     print('### TRAINING DONE ###')
 
     trainer.save_model(model_file_to_save)
