@@ -51,14 +51,14 @@ class MyDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
-def get_encoded_dataset(data_dir, pretrain_model, K, length, random_state, fold=0):
-    train, test, _ = split_train_test_data(data_dir, K, random_state, fold)
+def get_encoded_dataset(args, fold=0):
+    train, test, _ = split_train_test_data(args.data_file_path, args.K, args.seed, fold)
     X_train, y_train, X_test, y_test = split_X_y(train, test)
 
-    print(f'Tokenizer from: {pretrain_model}')
-    tokenizer = BertTokenizer.from_pretrained(pretrain_model)
-    encodings_train = tokenizer(X_train.tolist(), return_tensors='pt', padding='max_length', max_length=length, truncation=True)
-    encodings_test = tokenizer(X_test.tolist(), return_tensors='pt', padding='max_length', max_length=length, truncation=True)
+    print(f'Tokenizer from: {args.pretrain_path}')
+    tokenizer = BertTokenizer.from_pretrained(args.pretrain_path)
+    encodings_train = tokenizer(X_train.tolist(), return_tensors='pt', padding='max_length', max_length=args.max_len, truncation=True)
+    encodings_test = tokenizer(X_test.tolist(), return_tensors='pt', padding='max_length', max_length=args.max_len, truncation=True)
 
     print(encodings_train['input_ids'].shape[1], encodings_test['input_ids'].shape[1])
     print(encodings_train['input_ids'].shape[1] == encodings_test['input_ids'].shape[1])
@@ -68,6 +68,11 @@ def get_encoded_dataset(data_dir, pretrain_model, K, length, random_state, fold=
     test_dataset = MyDataset(encodings_test, y_test)
     return train_dataset, test_dataset
 
-def get_whole_data():
-    # getting the whole data for training and having a validation set 
-    pass
+def get_new_data(args):
+    columns = ['pmid', 'sentence']
+    df = pd.read_csv(args.data_file_path, usecols=columns)
+    print(f'all: {len(df):,}    unique sentences: {len(df.sentence.unique()):,}     papers: {len(df.pmid.unique()):,}')
+
+    tokenizer = BertTokenizer.from_pretrained(args.pretrain_path)
+    inputs = tokenizer(df['sentence'].tolist(), return_tensors='pt', padding='max_length', max_length=args.max_len, truncation=True)
+    return df, inputs
