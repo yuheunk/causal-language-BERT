@@ -3,6 +3,7 @@ import numpy as np
 
 import torch
 from torch.nn import CrossEntropyLoss
+import torch.nn.functional as F
 import transformers
 from transformers import TrainingArguments, Trainer, BertForSequenceClassification
 
@@ -11,16 +12,23 @@ from sklearn.utils.class_weight import compute_class_weight
 
 from utils.data import read_data
 
-# Should be modified
-DATA_DIR = "/home/ykim72/Lantis/causal-language-use-in-science/data/pubmed_causal_language_use.csv"
-label_name = {0:'none', 1:'causal', 2:'cond', 3:'corr'}
-NUM_CLASSES = len(label_name)
+#!# Should be modified
+DATA_DIR = "/home/ykim72/Lantis/causal-language-BERT/data/pubmed_causal_language_use.csv"
 
-###
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
 
 class MyTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
+    # def __init__(self, data_dir, model, args, train_dataset, eval_dataset, compute_metrics) -> None:
+    #     super(MyTrainer, self).__init__(
+    #         model=model,
+    #         args=args,
+    #         train_dataset=train_dataset,
+    #         eval_dataset=eval_dataset,
+    #         compute_metrics=compute_metrics
+    #     )
+    #     self.data_dir = data_dir
+
+    def compute_loss(self, model, inputs, return_outputs=False): # data_dir,
         df = read_data(DATA_DIR)
         labels = inputs.get("labels")
         # forward pass
@@ -63,22 +71,26 @@ def compute_metrics(pred):
         'recall': recall
     }
 
-def train_model(train_dataset, test_dataset, model_file_to_save, epochs, lr, batch_size, pretrain_model="dmis-lab/biobert-base-cased-v1.2"):
-    model = BertForSequenceClassification.from_pretrained(pretrain_model, num_labels=NUM_CLASSES)
-    model.to(device)
+def train_model(train_dataset, test_dataset, args, model_file_to_save):
+    # Data directory
+    data_file_path = '..' + args.data_file_path
+
+    model = BertForSequenceClassification.from_pretrained(args.pretrain_path, num_labels=args.num_class)
+    model.to(args.device)
     model.train()
     print('ready')
     
     training_args = TrainingArguments(
         output_dir=model_file_to_save,
-        num_train_epochs=epochs,
-        learning_rate=lr,
-        per_device_train_batch_size=batch_size,
-        evaluation_strategy='epoch',
+        num_train_epochs=args.epochs,
+        learning_rate=args.lr,
+        per_device_train_batch_size=args.batch_size,
+        evaluation_strategy="epoch",
         save_strategy="epoch"
     )
 
     trainer = MyTrainer(
+        # data_dir=data_file_path, #!#
         model=model,
         args=training_args,
         train_dataset=train_dataset,
@@ -86,7 +98,7 @@ def train_model(train_dataset, test_dataset, model_file_to_save, epochs, lr, bat
         compute_metrics=compute_metrics
     )
     print('### START TRAINING ###')
-    print(f'pretrain model = {pretrain_model}')
+    print(f'pretrain model = {args.pretrain_path}')
     trainer.train()
     print('### TRAINING DONE ###')
 
@@ -115,4 +127,21 @@ def eval_metrics(trainer):
     trainer.save_metrics("eval", metric)
     print(f'\n- metric saved.')
     return items
+
+def load_model(args):
+    model = BertForSequenceClassification.from_pretrained(args.pretrain_path, num_labels=args.num_class)
+    model.load_state_dict(torch.load(args.model_dir_path))
+    return model
+
+def pred_model(inputs, args):
+    model = load_model(args)
+    model.to(args.device)
+    model.eval()
+    print('ready')
     
+    with torch.no_grad():
+        logits = model(**inputs.to(args.device)).logits
+    logits = logits.detach().cpu()
+    labels = np.argmax(logits.numpy(), axis=1)
+    probs = np.argmax(F.softmax(logits, dim=-1), axis=1)
+    return labels, probs
