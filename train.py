@@ -75,6 +75,9 @@ def update_config(config):
         "causality": "adamnik/bert-causality-baseline"
     }
     config.pretrain_path = pretrain_dict[config.pretrain_model]
+
+    # set device
+    config.device = "cuda:0" if torch.cuda.is_available() else "cpu"
     return config
 
 
@@ -96,7 +99,7 @@ def main(config):
         train_dataset, test_dataset = get_encoded_dataset(args)
         trainer = train_model(train_dataset=train_dataset, \
                             test_dataset=test_dataset, \
-                            config=args, \
+                            args=args, \
                             model_file_to_save = args.output_dir_path
                             )
         
@@ -115,7 +118,7 @@ def main(config):
 
             trainer = train_model(train_dataset=train_dataset, \
                                 test_dataset=test_dataset, \
-                                config=args, \
+                                args=args, \
                                 model_file_to_save=output_dir_path_K # change output dir path
                                 )
             
