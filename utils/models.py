@@ -12,24 +12,19 @@ from sklearn.utils.class_weight import compute_class_weight
 
 from utils.data import read_data
 
-#!# Should be modified
-DATA_DIR = "/home/ykim72/Lantis/causal-language-BERT/data/pubmed_causal_language_use.csv"
-
-
-
 class MyTrainer(Trainer):
-    # def __init__(self, data_dir, model, args, train_dataset, eval_dataset, compute_metrics) -> None:
-    #     super(MyTrainer, self).__init__(
-    #         model=model,
-    #         args=args,
-    #         train_dataset=train_dataset,
-    #         eval_dataset=eval_dataset,
-    #         compute_metrics=compute_metrics
-    #     )
-    #     self.data_dir = data_dir
+    def __init__(self, data_dir, model, args, train_dataset, eval_dataset, compute_metrics) -> None:
+        super(MyTrainer, self).__init__(
+            model=model,
+            args=args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics
+        )
+        self.data_dir = data_dir
 
-    def compute_loss(self, model, inputs, return_outputs=False): # data_dir,
-        df = read_data(DATA_DIR)
+    def compute_loss(self, model, inputs, return_outputs=False):
+        df = read_data(self.data_dir)
         labels = inputs.get("labels")
         # forward pass
         outputs = model(**inputs)
@@ -73,7 +68,7 @@ def compute_metrics(pred):
 
 def train_model(train_dataset, test_dataset, args, model_file_to_save):
     # Data directory
-    data_file_path = '..' + args.data_file_path
+    data_file_path = args.data_file_path
 
     model = BertForSequenceClassification.from_pretrained(args.pretrain_path, num_labels=args.num_class)
     model.to(args.device)
@@ -90,7 +85,7 @@ def train_model(train_dataset, test_dataset, args, model_file_to_save):
     )
 
     trainer = MyTrainer(
-        # data_dir=data_file_path, #!#
+        data_dir=data_file_path, #!#
         model=model,
         args=training_args,
         train_dataset=train_dataset,
