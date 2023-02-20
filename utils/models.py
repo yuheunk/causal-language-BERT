@@ -138,5 +138,5 @@ def pred_model(inputs, args):
         logits = model(**inputs.to(args.device)).logits
     logits = logits.detach().cpu()
     labels = np.argmax(logits.numpy(), axis=1)
-    probs = np.argmax(F.softmax(logits, dim=-1), axis=1)
+    probs = np.amax(F.softmax(logits, dim=-1).numpy(), axis=1)
     return labels, probs
