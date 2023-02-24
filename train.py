@@ -129,7 +129,7 @@ def main(config):
         df_2['avg'] = df_2.mean(axis=1)
         df_2 = df_2.transpose()
        
-        df_2.to_csv(current_dir + args.output_dir_path + "test_metrics.csv", index=False, float_format="%.3f")
+        df_2.to_csv(args.output_dir_path + "test_metrics.csv", index=False, float_format="%.3f")
         
 
 if __name__ == '__main__':
